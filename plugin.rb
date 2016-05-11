@@ -8,8 +8,8 @@ PLUGIN_NAME ||= "navi_gami".freeze
 after_initialize do
   module ::NaviGami
     class Engine < ::Rails::Engine
-      engine_name PLUGIN_NAME
-      isolate_namespace NaviGami
+      #engine_name PLUGIN_NAME
+      isolate_namespace ::NaviGami
     end
   end
 
@@ -25,5 +25,26 @@ after_initialize do
 
   NotificationType.class_eval do
     notification_type_names %w(notify_navi_gami_test)
+  end
+
+
+  class ::NaviGami::MedalsController < ::API::ApiController
+    def index
+      render json: ['medaille 1', 'medaille 2']
+    end
+  end
+
+  # DO NOT WORK, DON'T KNOW WHY
+
+  # ::NaviGami::Engine.routes.draw do
+  #   resources :medals, only: :index
+  # end
+
+  # Fablab::Application.routes.draw do
+  #   mount ::NaviGami::Engine, at: "/navi_gami"
+  # end
+
+  Fablab::Application.routes.append do
+    resources :medals, only: :index, module: :navi_gami
   end
 end
