@@ -1,3 +1,10 @@
 en:
   navi_gami:
     plugin_name: "Navinum Gamification"
+
+
+  notifications_mailer:
+    notify_navi_gami_test:
+      subject: "Navi Gami test notification subject"
+      body:
+        hello: "Hello"
