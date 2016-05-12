@@ -38,7 +38,9 @@ after_initialize do
 
       case action
       when 'subscription.create'
-      else
+      when 'user_training.create'
+      when 'project.published'
+      when 'reservation.create'
       end
     end
   end
