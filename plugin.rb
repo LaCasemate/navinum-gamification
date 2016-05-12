@@ -27,6 +27,75 @@ after_initialize do
     notification_type_names %w(notify_navi_gami_test)
   end
 
+  # Job to call callbacks on Navinum API
+  class ::NaviGami::APICallbacksJob < ActiveJob::Base
+    queue_as :default
+
+    Logger = Sidekiq.logger.level == Logger::DEBUG ? Sidekiq.logger : nil
+
+    def perform(action, object = nil)
+      Logger.debug ['Gamification Navinum', action, object]
+
+      case action
+      when 'subscription.create'
+      else
+      end
+    end
+  end
+
+  # callback for new subscription
+  Subscription.class_eval do
+    # I can't f***** use option :on and :if at the same time...
+    after_commit ->(subscription) { subscription.navi_gami_callback }, if: :navi_gami_new_subscription?
+
+    def navi_gami_callback
+      NaviGami::APICallbacksJob.perform_later('subscription.create', self)
+    end
+
+    private
+      def navi_gami_new_subscription? # pretty horrible method, because args on: :create, on: :update are not working with if...
+        if self.persisted?
+          if self.updated_at == self.created_at # if create
+            return true
+          elsif previous_changes[:expired_at].present? and previous_changes[:expired_at][0].nil? # if update
+            return true
+          end
+        end
+        false
+      end
+  end
+
+  # callback when user validates a training
+  UserTraining.class_eval do
+    after_commit :navi_gami_callback, on: :create
+
+    private
+      def navi_gami_callback
+        NaviGami::APICallbacksJob.perform_later('user_training.create', self)
+      end
+  end
+
+  # callback when project is published well documented
+  Project.class_eval do
+    after_commit :navi_gami_callback, on: [:create, :update]
+
+    private
+      def navi_gami_callback
+        if self.project_caos.any? and self.project_image and self.name.present? and self.description.present?
+          NaviGami::APICallbacksJob.perform_later('project.published', self)
+        end
+      end
+  end
+
+  # callback when user books a machine
+  Reservation.class_eval do
+    after_commit :navi_gami_callback, on: :create
+
+    private
+      def navi_gami_callback
+        NaviGami::APICallbacksJob.perform_later('reservation.create', self) if self.reservation_type == "Machine"
+      end
+  end
 
   class ::NaviGami::MedalsController < ::API::ApiController
     def index
