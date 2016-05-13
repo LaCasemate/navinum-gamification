@@ -47,7 +47,7 @@ after_initialize do
 
   # callback for new subscription
   Subscription.class_eval do
-    # I can't f***** use option :on and :if at the same time...
+    # I can't use option :on and :if at the same time...unless it triggers on every event
     after_commit ->(subscription) { subscription.navi_gami_callback }, if: :navi_gami_new_subscription?
 
     def navi_gami_callback
@@ -55,7 +55,7 @@ after_initialize do
     end
 
     private
-      def navi_gami_new_subscription? # pretty horrible method, because args on: :create, on: :update are not working with if...
+      def navi_gami_new_subscription? # pretty horrible method
         if self.persisted?
           if self.updated_at == self.created_at # if create
             return true
