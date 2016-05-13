@@ -27,6 +27,53 @@ after_initialize do
     notification_type_names %w(notify_navi_gami_test)
   end
 
+  class ::NaviGami::Challenge < ActiveRecord::Base
+    belongs_to :training
+    validates :key, uniqueness: { scope: :training_id }
+
+    def medal_id=(val)
+      super(val.try(:strip))
+    end
+  end
+
+  Training.class_eval do
+    has_one :challenge, class_name: "::NaviGami::Challenge", dependent: :destroy
+    after_create :navi_gami_create_challenge
+
+    private
+      def navi_gami_create_challenge
+        ::NaviGami::Challenge.create!(key: 'user_training.create', training: self)
+      end
+  end
+
+  class ::NaviGami::ChallengesController < ::API::ApiController
+    before_action :authenticate_user!
+    before_action :authorize_admin_only!
+
+    def index
+      @challenges = ::NaviGami::Challenge.order(:created_at)
+      render json: @challenges.as_json(include: :training)
+    end
+
+    def update
+      @challenge = ::NaviGami::Challenge.find(params[:id])
+      if @challenge.update(challenge_params)
+        render json: @challenge.as_json(include: :training)
+      else
+        render json: @challenge.errors, status: :unprocessable_entity
+      end
+    end
+
+    private
+      def authorize_admin_only!
+        (head 403 and return) unless current_user.has_role? :admin
+      end
+
+      def challenge_params
+        params.require(:challenge).permit(:medal_id, :active)
+      end
+  end
+
   # Job to call callbacks on Navinum API
   class ::NaviGami::APICallbacksJob < ActiveJob::Base
     queue_as :default
@@ -40,7 +87,7 @@ after_initialize do
       when 'subscription.create'
       when 'user_training.create'
       when 'project.published'
-      when 'reservation.create'
+      when 'reservation.machine.create'
       end
     end
   end
@@ -95,14 +142,8 @@ after_initialize do
 
     private
       def navi_gami_callback
-        NaviGami::APICallbacksJob.perform_later('reservation.create', self) if self.reservation_type == "Machine"
+        NaviGami::APICallbacksJob.perform_later('reservation.machine.create', self) if self.reservation_type == "Machine"
       end
-  end
-
-  class ::NaviGami::MedalsController < ::API::ApiController
-    def index
-      render json: ['medaille 1', 'medaille 2']
-    end
   end
 
   # DO NOT WORK, DON'T KNOW WHY
@@ -116,6 +157,8 @@ after_initialize do
   # end
 
   Fablab::Application.routes.append do
-    resources :medals, only: :index, module: :navi_gami
+    namespace :navi_gami do
+      resources :challenges
+    end
   end
 end

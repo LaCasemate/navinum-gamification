@@ -1,7 +1,21 @@
 en:
   navi_gami:
     plugin_name: "Navinum Gamification"
+    page_title: "Navinum Gamification configuration"
+    trigger_title: Event type
+    associated_object: Related object
+    active: active
+    medal_id: Medal ID
 
+    yes: yes
+    no: no
+    save: save
+
+    challenge_keys:
+      subscription.create: New subscription
+      user_training.create: Validating a training
+      reservation.machine.create: Booking a machine
+      project.published: Publishing a project
 
   notifications_mailer:
     notify_navi_gami_test:

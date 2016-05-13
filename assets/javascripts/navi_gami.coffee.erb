@@ -15,16 +15,32 @@ angular.module('application.navi_gami', ['application'])
           views:
             'main@':
               templateUrl: '<%= asset_path "templates/navi_gami.html" %>'
-              controller: ->
-                console.log 'ctrl navi_gami'
+              controller: 'NGController'
+          resolve:
+            challengesPromise: ['NGChallenge', (NGChallenge)->
+              NGChallenge.query().$promise
+            ]
+            translations: ['Translations', (Translations)->
+              Translations.query(['navi_gami']).$promise
+            ]
 
   ]
 
+  .factory 'NGChallenge', ["$resource", ($resource)->
+    $resource "/navi_gami/challenges/:id",
+      {id: "@id"},
+      update:
+        method: 'PUT'
+  ]
 
+  .controller 'NGController', ['$scope', 'NGChallenge', 'challengesPromise', '_t', ($scope, NGChallenge, challengesPromise, _t)->
+    $scope.challenges = challengesPromise
 
-
-
-
+    $scope.save = (index)->
+      NGChallenge.update(id: $scope.challenges[index].id, { challenge: $scope.challenges[index] }, (challenge)->
+        $scope.challenges[index] = challenge
+      )
+  ]
 
 
 
