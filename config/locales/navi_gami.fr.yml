@@ -1,21 +1,30 @@
 fr:
   navi_gami:
-    plugin_name: "Gamification Navinum"
-    page_title: "Configuration de la Gamification Navinum"
-    trigger_title: Type d'événement
-    associated_object: Object associé
-    active: actif
-    medal_id: ID médaille
+    navi_gami:
+      plugin_name: "Gamification Navinum"
+      page_title: "Configuration de la Gamification Navinum"
+      config_tab_header: "Configuration"
+      challenges_tab_header: "Challenges"
 
-    yes: oui
-    no: non
-    save: enregistrer
+      trigger_title: Type d'événement
+      associated_object: Object associé
+      active: actif
+      medal_id: ID médaille
 
-    challenge_keys:
-      subscription.create: Achat d'un abonnement
-      user_training.create: Validation d'une formation
-      reservation.machine.create: Reservation d'une machine
-      project.published: Publication d'un projet
+      config:
+        external_space_url: "URL de l'espace externe"
+        api_url: "URL API Navinum"
+
+      challenge_keys:
+        subscription.create: Achat d'un abonnement
+        user_training.create: Validation d'une formation
+        reservation.machine.create: Reservation d'une machine
+        project.published: Publication d'un projet
+
+      notice:
+        config_successfully_saved: "La configuration a bien été enregistrée."
+        challenge_successfully_saved: "Le challenge a bien été enregistré."
+
 
   notifications_mailer:
     notify_navi_gami_test:

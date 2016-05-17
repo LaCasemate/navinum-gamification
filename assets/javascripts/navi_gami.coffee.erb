@@ -20,6 +20,9 @@ angular.module('application.navi_gami', ['application'])
             challengesPromise: ['NGChallenge', (NGChallenge)->
               NGChallenge.query().$promise
             ]
+            configPromise: ['NGConfig', (NGConfig)->
+              NGConfig.get().$promise
+            ]
             translations: ['Translations', (Translations)->
               Translations.query(['navi_gami']).$promise
             ]
@@ -33,12 +36,27 @@ angular.module('application.navi_gami', ['application'])
         method: 'PUT'
   ]
 
-  .controller 'NGController', ['$scope', 'NGChallenge', 'challengesPromise', '_t', ($scope, NGChallenge, challengesPromise, _t)->
-    $scope.challenges = challengesPromise
+  .factory 'NGConfig', ['$resource', ($resource)->
+    $resource "/navi_gami/config",
+      { },
+      update:
+        method: 'PUT'
+  ]
 
-    $scope.save = (index)->
+  .controller 'NGController', ['$scope', 'NGChallenge', 'challengesPromise', 'NGConfig', 'configPromise', '_t', 'growl', ($scope, NGChallenge, challengesPromise, NGConfig, configPromise, _t, growl)->
+    $scope.challenges = challengesPromise
+    $scope.config = configPromise
+
+    $scope.saveChallenge = (index)->
       NGChallenge.update(id: $scope.challenges[index].id, { challenge: $scope.challenges[index] }, (challenge)->
         $scope.challenges[index] = challenge
+        growl.success(_t('navi_gami.notice.challenge_successfully_saved'))
+      )
+
+    $scope.saveConfig = (config)->
+      NGConfig.update({}, config: config, (configResp)->
+        $scope.config = configResp
+        growl.success(_t('navi_gami.notice.config_successfully_saved'))
       )
   ]
 

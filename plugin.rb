@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 register_asset "stylesheets/navi_gami.scss"
 register_asset "javascripts/navi_gami.coffee.erb"
 
@@ -13,6 +15,8 @@ after_initialize do
     end
   end
 
+  class ::NaviGami::MissingConfigError < StandardError; end;
+
   NotificationsMailer.class_eval do
     append_view_path "#{Rails.root}/plugins/navi_gami/views"
 
@@ -27,6 +31,65 @@ after_initialize do
     notification_type_names %w(notify_navi_gami_test)
   end
 
+  class ::NaviGami::ProfileBackgroundImgUploader < CarrierWave::Uploader::Base
+    storage :file
+
+    def store_dir
+      "uploads/#{model.class.to_s.underscore}/#{mounted_as}/#{model.id}"
+    end
+
+    def extension_white_list
+      %w(jpg jpeg gif png)
+    end
+  end
+
+  # MODEL + CTRL of Config
+  class ::NaviGami::Config < ActiveRecord::Base
+    mount_uploader :profile_background_img, ::NaviGami::ProfileBackgroundImgUploader
+
+    def api_url=(val)
+      super(without_end_slash(val))
+    end
+
+    def external_space_url=(val)
+      super(without_end_slash(val))
+    end
+
+    private
+      def without_end_slash(url)
+        return url if url.nil?
+        url[-1] == "/" ? url[0..-2] : url
+      end
+  end
+
+  class ::NaviGami::ConfigsController < ::API::ApiController
+    before_action :authenticate_user!
+    before_action :authorize_admin_only!
+
+    def show
+      render json: ::NaviGami::Config.first
+    end
+
+    def update
+      @config = ::NaviGami::Config.first
+      if @config.update(config_params)
+        render json: @config
+      else
+        render json: { errors: @config.errors }, status: :unprocessable_entity
+      end
+    end
+
+    private
+      def authorize_admin_only!
+        (head 403 and return) unless current_user.has_role? :admin
+      end
+
+      def config_params
+        params.require(:config).permit(:external_space_url, :api_url, :profile_background_img)
+      end
+  end
+
+  # MODEL + CTRL of Challenge
   class ::NaviGami::Challenge < ActiveRecord::Base
     belongs_to :training
     validates :key, uniqueness: { scope: :training_id }
@@ -34,16 +97,6 @@ after_initialize do
     def medal_id=(val)
       super(val.try(:strip))
     end
-  end
-
-  Training.class_eval do
-    has_one :challenge, class_name: "::NaviGami::Challenge", dependent: :destroy
-    after_create :navi_gami_create_challenge
-
-    private
-      def navi_gami_create_challenge
-        ::NaviGami::Challenge.create!(key: 'user_training.create', training: self)
-      end
   end
 
   class ::NaviGami::ChallengesController < ::API::ApiController
@@ -60,7 +113,7 @@ after_initialize do
       if @challenge.update(challenge_params)
         render json: @challenge.as_json(include: :training)
       else
-        render json: @challenge.errors, status: :unprocessable_entity
+        render json: { errors: @challenge.errors }, status: :unprocessable_entity
       end
     end
 
@@ -90,6 +143,17 @@ after_initialize do
       when 'reservation.machine.create'
       end
     end
+  end
+
+  # association between training and challenge, with callback to create challenge when a training is created
+  Training.class_eval do
+    has_one :challenge, class_name: "::NaviGami::Challenge", dependent: :destroy
+    after_create :navi_gami_create_challenge
+
+    private
+      def navi_gami_create_challenge
+        ::NaviGami::Challenge.create!(key: 'user_training.create', training: self)
+      end
   end
 
   # callback for new subscription
@@ -158,7 +222,8 @@ after_initialize do
 
   Fablab::Application.routes.append do
     namespace :navi_gami do
-      resources :challenges
+      resources :challenges, only: [:index, :update]
+      resource :config, only: [:show, :update]
     end
   end
 end

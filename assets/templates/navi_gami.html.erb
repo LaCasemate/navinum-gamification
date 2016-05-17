@@ -7,7 +7,7 @@
     </div>
     <div class="col-xs-10 col-sm-10 col-md-8 b-l">
       <section class="heading-title">
-        <h1 translate>{{ 'page_title' }}</h1>
+        <h1 translate>{{ 'navi_gami.page_title' }}</h1>
       </section>
     </div>
 
@@ -17,45 +17,79 @@
 <section class="m-lg">
   <div class="row">
     <div class="col-md-12">
-      <table class="table">
-        <thead>
-          <tr>
-            <th style="width:20%" translate>{{ 'trigger_title' }}</th>
-            <th style="width:25%" translate>{{ 'associated_object' }}</th>
-            <th style="width:10%" translate>{{ 'active' }}</th>
-            <th style="width:15%" translate>{{ 'medal_id' }}</th>
-            <th style="width:25%"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr ng-repeat="challenge in challenges">
-            <td>
-              {{ "challenge_keys."+challenge.key | translate }}
-            </td>
-            <td class="">{{ challenge.training.name || '-' }}</td>
-            <td class="">
-              <input bs-switch
-                     ng-model="challenge.active"
-                     id=""
-                     type="checkbox"
-                     class="form-control"
-                     switch-on-text="{{ 'yes' | translate }}"
-                     switch-off-text="{{ 'no' | translate }}"
-                     switch-animate="true"/>
-            </td>
-            <td>
-              <input type="text" ng-model="challenge.medal_id" value="">
-            </td>
-            <td>
-              <div class="buttons">
-                <button class="btn btn-warning" ng-click="save($index)">
-                  {{ 'save' | translate }}
-                </button>
+      <uib-tabset justified="true">
+        <uib-tab heading="{{ 'navi_gami.config_tab_header' | translate }}">
+          <div class="row">
+            <div class="col-md-5">
+              <form role="form" class="m-t-lg" novalidate>
+                <label for="config[external_space_url]" class="control-label" translate>{{ 'navi_gami.config.external_space_url' }}</label>
+                <div class="form-group">
+                  <div class="input-group">
+                    <span class="input-group-addon"><i class="fa fa-link"></i></span>
+                    <input type="text" id="config_external_space_url" ng-model="config.external_space_url" class="form-control" placeholder="http://cyou.cap-sciences.net"/>
+                  </div>
+                </div>
+                <label for="config[external_space_url]" class="control-label" translate>{{ 'navi_gami.config.api_url' }}</label>
+                <div class="form-group">
+                  <div class="input-group">
+                    <span class="input-group-addon"><i class="fa fa-link"></i></span>
+                    <input type="text" id="config_api_url" ng-model="config.api_url" class="form-control" placeholder="http://api2.cap-sciences.net/api.php"/>
+                  </div>
+                </div>
+                <!-- <div class="form-group">
+                <div class="input-group">
+                <input type="text" id="config_external_space_url" ng-model="config.external_space_url" class="form-control" placeholder="http://cyou.cap-sciences.net"/>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div> -->
+            <button name="button" class="btn btn-warning" ng-click="saveConfig(config)" translate>save</button>
+          </form>
+
+            </div>
+          </div>
+        </uib-tab>
+
+        <uib-tab heading="{{ 'navi_gami.challenges_tab_header' | translate }}">
+          <table class="table m-t-lg">
+            <thead>
+              <tr>
+                <th style="width:20%" translate>{{ 'navi_gami.trigger_title' }}</th>
+                <th style="width:25%" translate>{{ 'navi_gami.associated_object' }}</th>
+                <th style="width:10%" translate>{{ 'navi_gami.active' }}</th>
+                <th style="width:15%" translate>{{ 'navi_gami.medal_id' }}</th>
+                <th style="width:25%"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="challenge in challenges">
+                <td>
+                  {{ "navi_gami.challenge_keys."+challenge.key | translate }}
+                </td>
+                <td class="">{{ challenge.training.name || '-' }}</td>
+                <td class="">
+                  <input bs-switch
+                         ng-model="challenge.active"
+                         id=""
+                         type="checkbox"
+                         class="form-control"
+                         switch-on-text="{{ 'yes' | translate }}"
+                         switch-off-text="{{ 'no' | translate }}"
+                         switch-animate="true"/>
+                </td>
+                <td>
+                  <input type="text" ng-model="challenge.medal_id" value="">
+                </td>
+                <td>
+                  <div class="buttons">
+                    <button class="btn btn-warning" ng-click="saveChallenge($index)">
+                      {{ 'save' | translate }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </uib-tab>
+      </uib-tabset>
     </div>
   </div>
 </section>

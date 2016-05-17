@@ -1,21 +1,29 @@
 en:
   navi_gami:
-    plugin_name: "Navinum Gamification"
-    page_title: "Navinum Gamification configuration"
-    trigger_title: Event type
-    associated_object: Related object
-    active: active
-    medal_id: Medal ID
+    navi_gami:
+      plugin_name: "Navinum Gamification"
+      page_title: "Navinum Gamification configuration"
+      config_tab_header: "Configuration"
+      challenges_tab_header: "Challenges"
 
-    yes: yes
-    no: no
-    save: save
+      trigger_title: Event type
+      associated_object: Related object
+      active: active
+      medal_id: Medal ID
 
-    challenge_keys:
-      subscription.create: New subscription
-      user_training.create: Validating a training
-      reservation.machine.create: Booking a machine
-      project.published: Publishing a project
+      config:
+        external_space_url: "External space URL"
+        api_url: "Navinum API URL"
+
+      challenge_keys:
+        subscription.create: New subscription
+        user_training.create: Validating a training
+        reservation.machine.create: Booking a machine
+        project.published: Publishing a project
+
+      notice:
+        config_successfully_saved: "Configuration successfully saved."
+        challenge_successfully_saved: "Challenge successfully saved."
 
   notifications_mailer:
     notify_navi_gami_test:
