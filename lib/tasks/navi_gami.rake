@@ -1,6 +1,6 @@
 namespace :navi_gami do
   namespace :challenges do
-    task init: :environment do
+    task setup: :environment do
       NaviGami::Challenge.create!(key: 'subscription.create')
       NaviGami::Challenge.create!(key: 'project.published')
       NaviGami::Challenge.create!(key: 'reservation.machine.create')
