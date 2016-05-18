@@ -31,22 +31,16 @@ after_initialize do
     notification_type_names %w(notify_navi_gami_test)
   end
 
-  class ::NaviGami::ProfileBackgroundImgUploader < CarrierWave::Uploader::Base
-    storage :file
-
-    def store_dir
-      "uploads/#{model.class.to_s.underscore}/#{mounted_as}/#{model.id}"
-    end
-
-    def extension_white_list
-      %w(jpg jpeg gif png)
-    end
+  # concern for controller
+  module ::NaviGami::ControllersConcern
+    private
+      def authorize_admin_only!
+        (head 403 and return) unless current_user.has_role? :admin
+      end
   end
 
   # MODEL + CTRL of Config
   class ::NaviGami::Config < ActiveRecord::Base
-    mount_uploader :profile_background_img, ::NaviGami::ProfileBackgroundImgUploader
-
     def api_url=(val)
       super(without_end_slash(val))
     end
@@ -63,6 +57,7 @@ after_initialize do
   end
 
   class ::NaviGami::ConfigsController < ::API::ApiController
+    include ::NaviGami::ControllersConcern
     before_action :authenticate_user!
     before_action :authorize_admin_only!
 
@@ -80,10 +75,6 @@ after_initialize do
     end
 
     private
-      def authorize_admin_only!
-        (head 403 and return) unless current_user.has_role? :admin
-      end
-
       def config_params
         params.require(:config).permit(:external_space_url, :api_url, :profile_background_img)
       end
@@ -100,6 +91,7 @@ after_initialize do
   end
 
   class ::NaviGami::ChallengesController < ::API::ApiController
+    include ::NaviGami::ControllersConcern
     before_action :authenticate_user!
     before_action :authorize_admin_only!
 
@@ -118,10 +110,6 @@ after_initialize do
     end
 
     private
-      def authorize_admin_only!
-        (head 403 and return) unless current_user.has_role? :admin
-      end
-
       def challenge_params
         params.require(:challenge).permit(:medal_id, :active)
       end
