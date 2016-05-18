@@ -12,8 +12,8 @@ en:
       medal_id: Medal ID
 
       config:
-        external_space_url: "External space URL"
-        api_url: "Navinum API URL"
+        external_space_url: External space URL
+        api_url: Navinum API URL
 
       challenge_keys:
         subscription.create: New subscription

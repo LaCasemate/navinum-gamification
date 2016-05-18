@@ -19,30 +19,26 @@
     <div class="col-md-12">
       <uib-tabset justified="true">
         <uib-tab heading="{{ 'navi_gami.config_tab_header' | translate }}">
-          <div class="row">
+          <div class="row m-t-lg">
             <div class="col-md-5">
-              <form role="form" class="m-t-lg" novalidate>
-                <label for="config[external_space_url]" class="control-label" translate>{{ 'navi_gami.config.external_space_url' }}</label>
+              <form role="form" class="" novalidate>
+                <label for="config[external_space_url]" class="control-label" translate>navi_gami.config.external_space_url</label>
                 <div class="form-group">
                   <div class="input-group">
                     <span class="input-group-addon"><i class="fa fa-link"></i></span>
-                    <input type="text" id="config_external_space_url" ng-model="config.external_space_url" class="form-control" placeholder="http://cyou.cap-sciences.net"/>
+                    <input type="text" id="config_external_space_url" name="config[external_space_url]" ng-model="config.external_space_url" class="form-control" placeholder="http://cyou.cap-sciences.net"/>
                   </div>
                 </div>
-                <label for="config[external_space_url]" class="control-label" translate>{{ 'navi_gami.config.api_url' }}</label>
+                <label for="config[api_url]" class="control-label" translate>navi_gami.config.api_url</label>
                 <div class="form-group">
                   <div class="input-group">
                     <span class="input-group-addon"><i class="fa fa-link"></i></span>
-                    <input type="text" id="config_api_url" ng-model="config.api_url" class="form-control" placeholder="http://api2.cap-sciences.net/api.php"/>
+                    <input type="text" id="config_api_url" name="config[api_url]" ng-model="config.api_url" class="form-control" placeholder="http://api2.cap-sciences.net/api.php"/>
                   </div>
                 </div>
-                <!-- <div class="form-group">
-                <div class="input-group">
-                <input type="text" id="config_external_space_url" ng-model="config.external_space_url" class="form-control" placeholder="http://cyou.cap-sciences.net"/>
-              </div>
-            </div> -->
-            <button name="button" class="btn btn-warning" ng-click="saveConfig(config)" translate>save</button>
-          </form>
+
+                <button name="button" class="btn btn-warning" ng-click="saveConfig(config)" translate>save</button>
+              </form>
 
             </div>
           </div>
