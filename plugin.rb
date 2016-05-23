@@ -42,11 +42,19 @@ after_initialize do
   # MODEL + CTRL of Config
   class ::NaviGami::Config < ActiveRecord::Base
     def api_url=(val)
-      super(without_end_slash(val))
+      super(without_end_slash(val).try(:strip))
     end
 
     def external_space_url=(val)
-      super(without_end_slash(val))
+      super(without_end_slash(val).try(:strip))
+    end
+
+    def context_id=(val)
+      super(val.try(:strip))
+    end
+
+    def universe_id=(val)
+      super(val.try(:strip))
     end
 
     private
@@ -56,7 +64,7 @@ after_initialize do
       end
   end
 
-  class ::NaviGami::ConfigsController < ::API::ApiController
+  class ::NaviGami::ConfigsController < ApplicationController
     include ::NaviGami::ControllersConcern
     before_action :authenticate_user!
     before_action :authorize_admin_only!
@@ -76,7 +84,7 @@ after_initialize do
 
     private
       def config_params
-        params.require(:config).permit(:external_space_url, :api_url, :profile_background_img)
+        params.require(:config).permit(:external_space_url, :api_url, :universe_id, :context_id)
       end
   end
 
@@ -90,7 +98,7 @@ after_initialize do
     end
   end
 
-  class ::NaviGami::ChallengesController < ::API::ApiController
+  class ::NaviGami::ChallengesController < ApplicationController
     include ::NaviGami::ControllersConcern
     before_action :authenticate_user!
     before_action :authorize_admin_only!
@@ -113,6 +121,93 @@ after_initialize do
       def challenge_params
         params.require(:challenge).permit(:medal_id, :active)
       end
+  end
+
+  class ::NaviGami::GamificationDataProxyController < ApplicationController
+    def profile_data
+      config = ::NaviGami::Config.first
+
+      # guid TO BE REPLACED by guid of user ! (attr uid in database)
+      body = ::NaviGami::API::Visitor.show(guid: "FF4F0BBB1236943CBB913CC818CE8D81")[0]
+
+      if body
+        visitor_status_data = body.dig("VisiteurUnivers", config.universe_id, "VisiteurStatus").try(:[], 0)
+      end
+
+      if visitor_status_data
+        universe_status = visitor_status_data["UniversStatus"]
+      end
+
+      if universe_status
+        status = {
+          label: universe_status["libelle"],
+          description: universe_status["description"],
+          image_url: universe_status["image1"]
+        }
+      else
+        status = nil
+      end
+
+      render json: {
+        external_space_url: config.external_space_url,
+        status: status
+      }
+    end
+  end
+
+  # Micro API wrapper to consume API
+
+  module ::NaviGami::API
+    class << self
+      attr_accessor :config
+
+      def config
+        @config ||= Config.new
+      end
+    end
+
+    class Error < StandardError; end;
+
+    def self.configure
+      yield config
+    end
+
+    def self.handle_response(response)
+      if response.code.to_i >= 400
+        raise ::NaviGami::API::Error
+      else
+        JSON.parse(response.body)
+      end
+    end
+
+    def self.get(uri_string)
+      uri = URI(uri_string)
+      req = Net::HTTP::Get.new(uri)
+      req.basic_auth 'sleede', '4jbwZ4X2' # TO BE REPLACED
+      handle_response(Net::HTTP.start(uri.hostname, uri.port) {|http| http.request(req) })
+    end
+
+    class Config
+      attr_accessor :base_uri
+
+      def initialize
+        @base_uri = ::NaviGami::Config.first.api_url
+      end
+    end
+
+    module VisitorMedal
+      def self.create
+        Net::HTTP.get_response(URI(::NaviGami::API.config.base_uri+"/posts/1"))
+      end
+    end
+
+    module Visitor
+      def self.show(guid:)
+        query_params = { guid: guid }.merge({with_univers: 1})
+        full_uri = "#{::NaviGami::API.config.base_uri}/visiteur?#{query_params.to_query}"
+        ::NaviGami::API.get(full_uri)
+      end
+    end
   end
 
   # Job to call callbacks on Navinum API
@@ -212,6 +307,8 @@ after_initialize do
     namespace :navi_gami do
       resources :challenges, only: [:index, :update]
       resource :config, only: [:show, :update]
+
+      get :profile_data, to: "gamification_data_proxy#profile_data"
     end
   end
 end
