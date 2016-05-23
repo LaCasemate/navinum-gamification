@@ -14,6 +14,8 @@ fr:
       config:
         external_space_url: URL de l'espace externe
         api_url: URL API Navinum
+        universe_id: ID univers
+        context_id: ID contexte
 
       challenge_keys:
         subscription.create: Achat d'un abonnement
@@ -23,6 +25,7 @@ fr:
 
       notice:
         config_successfully_saved: "La configuration a bien été enregistrée."
+        config_not_saved: "La configuration n'a pas pu être sauvegardée."
         challenge_successfully_saved: "Le challenge a bien été enregistré."
 
 

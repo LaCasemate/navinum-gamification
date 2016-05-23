@@ -36,6 +36,14 @@
                     <input type="text" id="config_api_url" name="config[api_url]" ng-model="config.api_url" class="form-control" placeholder="http://api2.cap-sciences.net/api.php"/>
                   </div>
                 </div>
+                <label for="config[universe_id]" class="control-label" translate>navi_gami.config.universe_id</label>
+                <div class="form-group">
+                  <input type="text" id="config_universe_id" name="config[universe_id]" ng-model="config.universe_id" class="form-control" placeholder=""/>
+                </div>
+                <label for="config[context_id]" class="control-label" translate>navi_gami.config.context_id</label>
+                <div class="form-group">
+                  <input type="text" id="config_context_id" name="config[context_id]" ng-model="config.context_id" class="form-control" placeholder=""/>
+                </div>
 
                 <button name="button" class="btn btn-warning" ng-click="saveConfig(config)" translate>save</button>
               </form>

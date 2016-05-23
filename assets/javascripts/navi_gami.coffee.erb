@@ -57,6 +57,8 @@ angular.module('application.navi_gami', ['application'])
       NGConfig.update({}, config: config, (configResp)->
         $scope.config = configResp
         growl.success(_t('navi_gami.notice.config_successfully_saved'))
+      , (erorr)->
+        growl.error(_t('navi_gami.notice.config_not_saved'))
       )
 
   ]
