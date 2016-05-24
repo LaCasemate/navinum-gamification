@@ -29,7 +29,34 @@ en:
         challenge_successfully_saved: "Challenge successfully saved."
 
   notifications_mailer:
-    notify_navi_gami_test:
-      subject: "Navi Gami test notification subject"
+    navi_gami_challenge_won:
+      subject: "You won a challenge !"
       body:
-        hello: "Hello"
+        you_won_a_challenge: You won a challenge
+        by: ''
+        events:
+          subscription:
+            create: purchasing a subscription
+          user_training:
+            create: validating a training
+          project:
+            published: publishing a project
+          reservation:
+            machine:
+              create: booking a machine
+
+  api:
+    notifications:
+      navi_gami_challenge_won:
+        you_won_a_challenge: You won a challenge
+        by: ''
+        events:
+          subscription:
+            create: purchasing a subscription
+          user_training:
+            create: validating a training
+          project:
+            published: publishing a project
+          reservation:
+            machine:
+              create: booking a machine

@@ -30,7 +30,34 @@ fr:
 
 
   notifications_mailer:
-    notify_navi_gami_test:
-      subject: "Navi Gami test sujet notification"
+    navi_gami_challenge_won:
+      subject: "Vous avez remporté un challenge !"
       body:
-        hello: "Bonjour"
+        you_won_a_challenge: Vous avez remporté un challenge
+        by: en
+        events:
+          subscription:
+            create: achetant un abonnement
+          user_training:
+            create: validant une formation
+          project:
+            published: publiant un projet
+          reservation:
+            machine:
+              create: réservant une machine
+
+  api:
+    notifications:
+      navi_gami_challenge_won:
+        you_won_a_challenge: Vous avez remporté un challenge
+        by: en
+        events:
+          subscription:
+            create: achetant un abonnement
+          user_training:
+            create: validant une formation
+          project:
+            published: publiant un projet
+          reservation:
+            machine:
+              create: réservant une machine

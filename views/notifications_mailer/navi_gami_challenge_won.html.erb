@@ -1,0 +1,10 @@
+<p><%= t "notifications_mailer.shared.hello", user_name: @recipient.profile.full_name %>,</p>
+
+<p class="">
+  <%= t('.body.you_won_a_challenge') -%>
+  <%- if @notification.get_meta_data(:event) %>
+    <%= t('.body.by') -%>
+    <%= t(".body.events.#{@notification.get_meta_data(:event)}") -%>
+  <%- end %>
+  .
+</p>

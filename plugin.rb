@@ -29,22 +29,29 @@ after_initialize do
       #engine_name PLUGIN_NAME
       isolate_namespace ::NaviGami
     end
+
+    module Events
+      SUBSCRIPTION_CREATE = 'subscription.create'.freeze
+      USER_TRAINING_CREATE = 'user_training.create'.freeze
+      PROJECT_PUBLISHED = 'project.published'.freeze
+      RESERVATION_MACHINE_CREATE = 'reservation.machine.create'.freeze
+    end
   end
 
   class ::NaviGami::MissingConfigError < StandardError; end;
 
   NotificationsMailer.class_eval do
-    append_view_path "#{Rails.root}/plugins/navi_gami/views"
+    #append_view_path "#{Rails.root}/plugins/navi_gami/views" # useless ?
 
-    def notify_navi_gami_test # dummy code but proof of concept
-      @notification = Notification.last
-      mail(to: 'test@sleede.com')  # will search for notify_navi_gami_test.html
+    #def notify_navi_gami_test # dummy code but proof of concept
+    #  @notification = Notification.last
+    #  mail(to: 'test@sleede.com')  # will search for notify_navi_gami_test.html
                                   # will search subject in notifications_mailer.notify_navi_gami_test.subject in translations
-    end
+    #end
   end
 
   NotificationType.class_eval do
-    notification_type_names %w(notify_navi_gami_test)
+    notification_type_names %w(navi_gami_challenge_won)
   end
 
   # concern for controller
@@ -190,6 +197,7 @@ after_initialize do
     end
 
     def self.handle_response(response)
+      Rails.logger.info ['Navinum API response', response.code, response.body]
       if response.code.to_i >= 400
         raise ::NaviGami::API::Error
       else
@@ -197,24 +205,35 @@ after_initialize do
       end
     end
 
+    def self.post(uri_string, body)
+      uri = URI(uri_string)
+      req = Net::HTTP::Post.new(uri, initheader = { 'Content-Type' => 'application/json' })
+      req.basic_auth ::NaviGami::API.config.login, ::NaviGami::API.config.password
+      req.body = body.to_json
+      handle_response(Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(req) })
+    end
+
     def self.get(uri_string)
       uri = URI(uri_string)
       req = Net::HTTP::Get.new(uri)
-      req.basic_auth 'sleede', '4jbwZ4X2' # TO BE REPLACED
-      handle_response(Net::HTTP.start(uri.hostname, uri.port) {|http| http.request(req) })
+      req.basic_auth ::NaviGami::API.config.login, ::NaviGami::API.config.password
+      handle_response(Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(req) })
     end
 
     class Config
-      attr_accessor :base_uri
+      attr_accessor :base_uri, :login, :password
 
       def initialize
         @base_uri = ::NaviGami::Config.first.api_url
+        @login = Rails.application.secrets.navinum_api_login
+        @password = Rails.application.secrets.navinum_api_password
       end
     end
 
     module VisitorMedal
-      def self.create
-        Net::HTTP.get_response(URI(::NaviGami::API.config.base_uri+"/posts/1"))
+      def self.create(body)
+        full_uri = "#{::NaviGami::API.config.base_uri}/visiteur_medaille/create"
+        ::NaviGami::API.post(full_uri, body)
       end
     end
 
@@ -236,12 +255,43 @@ after_initialize do
     def perform(action, object = nil)
       Logger.debug ['Gamification Navinum', action, object]
 
+      navi_config = ::NaviGami::Config.first
+
+      request_body = { contexte_id: navi_config.context_id, univers_id: navi_config.universe_id }
+
       case action
-      when 'subscription.create'
-      when 'user_training.create'
-      when 'project.published'
-      when 'reservation.machine.create'
+      when ::NaviGami::Events::SUBSCRIPTION_CREATE
+        user = object.user
+        challenge = ::NaviGami::Challenge.find_by(key: action)
+        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: challenge.medal_id })
+
+        if challenge.active? and challenge.medal_id
+          response = ::NaviGami::API::VisitorMedal.create(request_body)
+        end
+
+      when ::NaviGami::Events::USER_TRAINING_CREATE
+        user = object.user
+        challenge = object.training.challenge
+        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: challenge.medal_id })
+
+
+      when ::NaviGami::Events::PROJECT_PUBLISHED
+        user = object.author
+        medal_id = ::NaviGami::Challenge.find_by(key: action).medal_id
+        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: medal_id })
+
+      when ::NaviGami::Events::RESERVATION_MACHINE_CREATE
+        user = object.user
+        medal_id = ::NaviGami::Challenge.find_by(key: action).medal_id
+        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: medal_id })
+
       end
+
+      Logger.info ['Navinum API response', response.try(:code), response.try(:body)]
+
+      notification = Notification.new(meta_data: { event: action })
+      notification.send_notification(type: :navi_gami_challenge_won, attached_object: object).to(user).deliver_later
+
     end
   end
 
@@ -252,7 +302,7 @@ after_initialize do
 
     private
       def navi_gami_create_challenge
-        ::NaviGami::Challenge.create!(key: 'user_training.create', training: self)
+        ::NaviGami::Challenge.create!(key: ::NaviGami::Events::USER_TRAINING_CREATE, training: self)
       end
   end
 
@@ -262,7 +312,7 @@ after_initialize do
     after_commit ->(subscription) { subscription.navi_gami_callback }, if: :navi_gami_new_subscription?
 
     def navi_gami_callback
-      NaviGami::APICallbacksJob.perform_later('subscription.create', self)
+      ::NaviGami::APICallbacksJob.perform_later(::NaviGami::Events::SUBSCRIPTION_CREATE, self)
     end
 
     private
@@ -284,7 +334,7 @@ after_initialize do
 
     private
       def navi_gami_callback
-        NaviGami::APICallbacksJob.perform_later('user_training.create', self)
+        NaviGami::APICallbacksJob.perform_later(::NaviGami::Events::USER_TRAINING_CREATE, self)
       end
   end
 
@@ -294,8 +344,8 @@ after_initialize do
 
     private
       def navi_gami_callback
-        if self.project_caos.any? and self.project_image and self.name.present? and self.description.present?
-          NaviGami::APICallbacksJob.perform_later('project.published', self)
+        if self.project_caos.any? and self.project_vents and self.name.present? and self.description.present?
+          NaviGami::APICallbacksJob.perform_later(::NaviGami::Events::PROJECT_PUBLISHED, self)
         end
       end
   end
@@ -306,7 +356,7 @@ after_initialize do
 
     private
       def navi_gami_callback
-        NaviGami::APICallbacksJob.perform_later('reservation.machine.create', self) if self.reservation_type == "Machine"
+        NaviGami::APICallbacksJob.perform_later(::NaviGami::Events::RESERVATION_MACHINE_CREATE, self) if self.reservation_type == "Machine"
       end
   end
 
