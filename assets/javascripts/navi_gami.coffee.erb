@@ -64,7 +64,19 @@ angular.module('application.navi_gami', ['application'])
   ]
 
 
+  .controller 'NGProfileDataController', ['$http', '$scope', ($http, $scope)->
+    vm = @
 
+    userUID = $scope.$parent.user.uid
+
+    if userUID? and (userUID.length > 0)
+      $http.get("/navi_gami/gamification_data_proxy/profile_data?user_uid=#{userUID}").then((response)->
+        vm.externalSpaceUrl = response.data.external_space_url
+        vm.status = response.data.status
+      )
+
+    return vm
+  ]
 
 
 

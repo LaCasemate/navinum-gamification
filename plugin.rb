@@ -6,6 +6,22 @@ register_asset "javascripts/navi_gami.coffee.erb"
 
 PLUGIN_NAME ||= "navi_gami".freeze
 
+register_html_code_insertion 'html.user.profile', <<-HTML
+  <div id="navi_gami_hook">
+    <div ng-controller="NGProfileDataController as vm">
+      <div ng-if="vm.status">
+        <a ng-href="{{ vm.externalSpaceUrl }}" target="_blank">
+          <img ng-src="{{ vm.status.image_url }}" alt="" />
+          <span class="">{{ vm.status.label }}</span>
+          <p>
+            {{ vm.status.description }}
+          </p>
+        </a>
+      </div>
+    </div>
+  </div>
+HTML
+
 
 after_initialize do
   module ::NaviGami
@@ -127,8 +143,9 @@ after_initialize do
     def profile_data
       config = ::NaviGami::Config.first
 
-      # guid TO BE REPLACED by guid of user ! (attr uid in database)
-      body = ::NaviGami::API::Visitor.show(guid: "FF4F0BBB1236943CBB913CC818CE8D81")[0]
+
+      # guid TO BE REPLACED by guid of user sent by frontend ! (attr uid in database)
+      body = ::NaviGami::API::Visitor.show(guid: params[:user_uid])[0]
 
       if body
         visitor_status_data = body.dig("VisiteurUnivers", config.universe_id, "VisiteurStatus").try(:[], 0)
@@ -308,7 +325,9 @@ after_initialize do
       resources :challenges, only: [:index, :update]
       resource :config, only: [:show, :update]
 
-      get :profile_data, to: "gamification_data_proxy#profile_data"
+      namespace :gamification_data_proxy do
+        get :profile_data
+      end
     end
   end
 end
