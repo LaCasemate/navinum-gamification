@@ -6,7 +6,7 @@ register_asset "javascripts/navi_gami.coffee.erb"
 
 PLUGIN_NAME ||= "navi_gami".freeze
 
-register_html_code_insertion 'html.user.profile', <<-HTML
+register_code_insertion 'html.user.profile', <<-HTML
   <div id="navi_gami_hook">
     <div ng-controller="NGProfileDataController as vm">
       <div ng-if="vm.status">
@@ -21,6 +21,13 @@ register_html_code_insertion 'html.user.profile', <<-HTML
     </div>
   </div>
 HTML
+
+register_code_insertion 'yml.schedule', <<-YAML
+  navi_gami_update_users:
+    cron: "* * * * *"
+    class: "::NaviGami::UpdateUsersDataJob"
+    queue: default
+YAML
 
 
 after_initialize do
@@ -151,9 +158,8 @@ after_initialize do
     def profile_data
       config = ::NaviGami::Config.first
 
-
-      # guid TO BE REPLACED by guid of user sent by frontend ! (attr uid in database)
-      body = ::NaviGami::API::Visitor.show(guid: params[:user_uid])[0]
+      body, raw_response = ::NaviGami::API::Visitor.show(guid: params[:user_uid])
+      body = body[0]
 
       if body
         visitor_status_data = body.dig("VisiteurUnivers", config.universe_id, "VisiteurStatus").try(:[], 0)
@@ -250,10 +256,10 @@ after_initialize do
   class ::NaviGami::APICallbacksJob < ActiveJob::Base
     queue_as :default
 
-    Logger = Sidekiq.logger.level == Logger::DEBUG ? Sidekiq.logger : nil
+    Logger = Sidekiq.logger
 
     def perform(action, object = nil)
-      Logger.debug ['Gamification Navinum Job', action, object]
+      Logger.info ['Gamification Navinum Job', action, object]
 
       navi_config = ::NaviGami::Config.first
 
@@ -284,6 +290,18 @@ after_initialize do
       else
         Logger.info ['Gamification Navinum', "no request made because challenge isn't active or challenge doesn't have medal_id associated with."]
       end
+    end
+  end
+
+  # Job to update users' account data with Navinum API
+  class ::NaviGami::UpdateUsersDataJob
+    include Sidekiq::Worker
+    sidekiq_options queue: 'default', retry: true
+
+    Logger = Sidekiq.logger
+
+    def perform
+      Logger.info ['Navinum update users job']
     end
   end
 
