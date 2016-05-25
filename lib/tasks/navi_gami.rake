@@ -33,4 +33,12 @@ namespace :navi_gami do
       Rake::Task["db:migrate:down"].invoke
     end
   end
+
+  task retroactively_push_medals: :environment do
+    warn "info: be sure to configure medal_id of challenges before running this task"
+    Subscription.find_each { |subscription| subscription.send(:navi_gami_callback) }
+    UserTraining.find_each { |user_training| user_training.send(:navi_gami_callback) }
+    Project.find_each { |project| project.send(:navi_gami_callback) }
+    Reservation.where(reservable_type: "Machine").select('distinct on (reservations.user_id) reservations.*').each { |reservation| reservation.send(:navi_gami_callback) }
+  end
 end
