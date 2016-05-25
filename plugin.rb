@@ -24,7 +24,7 @@ HTML
 
 register_code_insertion 'yml.schedule', <<-YAML
   navi_gami_update_users:
-    cron: "* * * * *"
+    cron: "0 3 * * *"
     class: "::NaviGami::UpdateUsersDataJob"
     queue: default
 YAML
@@ -241,6 +241,12 @@ after_initialize do
         full_uri = "#{::NaviGami::API.config.base_uri}/visiteur_medaille/create"
         ::NaviGami::API.post(full_uri, body)
       end
+
+      def self.index(visiteur_id:)
+        query_params = { visiteur_id: visiteur_id }
+        full_uri = "#{::NaviGami::API.config.base_uri}/visiteur_medaille?#{query_params.to_query}"
+        ::NaviGami::API.get(full_uri)
+      end
     end
 
     module Visitor
@@ -279,13 +285,19 @@ after_initialize do
       request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: challenge.medal_id })
 
       if challenge.active? and challenge.medal_id
-        Logger.info ['Navinum API request body sent', request_body]
-        response_body, raw_response = ::NaviGami::API::VisitorMedal.create(request_body)
-        Logger.info ['Navinum API response', raw_response.code, raw_response.try(:body)]
+        user_medals = ::NaviGami::API::VisitorMedal.index(visiteur_id: user.uid)[0]
 
-        if (raw_response.code.to_i >= 200) and (raw_response.code.to_i < 300)
-          notification = Notification.new(meta_data: { event: action })
-          notification.send_notification(type: :navi_gami_challenge_won, attached_object: object).to(user).deliver_later
+        if user_medals.any? { |medal| medal["medaille_id"] == challenge.medal_id }
+          Logger.info ['Navinum API', "User with UID=#{user.uid} already has medal with uid=#{challenge.medal_id}"]
+        else
+          Logger.info ['Navinum API request body sent', request_body]
+          response_body, raw_response = ::NaviGami::API::VisitorMedal.create(request_body)
+          Logger.info ['Navinum API response', raw_response.code, raw_response.try(:body)]
+
+          if (raw_response.code.to_i >= 200) and (raw_response.code.to_i < 300)
+            notification = Notification.new(meta_data: { event: action })
+            notification.send_notification(type: :navi_gami_challenge_won, attached_object: object).to(user).deliver_later
+          end
         end
       else
         Logger.info ['Gamification Navinum', "no request made because challenge isn't active or challenge doesn't have medal_id associated with."]
