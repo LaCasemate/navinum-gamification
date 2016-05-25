@@ -277,7 +277,7 @@ after_initialize do
         response_body, raw_response = ::NaviGami::API::VisitorMedal.create(request_body)
         Logger.info ['Navinum API response', raw_response.code, raw_response.try(:body)]
 
-        if (raw_response.code.to_i >= 200) and (raw_response.code.to_i) < 300
+        if (raw_response.code.to_i >= 200) and (raw_response.code.to_i < 300)
           notification = Notification.new(meta_data: { event: action })
           notification.send_notification(type: :navi_gami_challenge_won, attached_object: object).to(user).deliver_later
         end
