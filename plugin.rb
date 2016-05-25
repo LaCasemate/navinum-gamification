@@ -39,6 +39,7 @@ after_initialize do
   end
 
   class ::NaviGami::MissingConfigError < StandardError; end;
+  class ::NaviGami::MissingUserUIDError < StandardError; end;
 
   NotificationsMailer.class_eval do
     #append_view_path "#{Rails.root}/plugins/navi_gami/views" # useless ?
@@ -197,11 +198,10 @@ after_initialize do
     end
 
     def self.handle_response(response)
-      Rails.logger.info ['Navinum API response', response.code, response.body]
-      if response.code.to_i >= 400
+      if response.code.to_i >= 500
         raise ::NaviGami::API::Error
       else
-        JSON.parse(response.body)
+        return JSON.parse(response.body), response
       end
     end
 
@@ -253,45 +253,37 @@ after_initialize do
     Logger = Sidekiq.logger.level == Logger::DEBUG ? Sidekiq.logger : nil
 
     def perform(action, object = nil)
-      Logger.debug ['Gamification Navinum', action, object]
+      Logger.debug ['Gamification Navinum Job', action, object]
 
       navi_config = ::NaviGami::Config.first
 
       request_body = { contexte_id: navi_config.context_id, univers_id: navi_config.universe_id }
 
+      user = object.try(:user) || object.author
+
+      raise ::NaviGami::MissingUserUIDError if user.uid.blank?
+
       case action
-      when ::NaviGami::Events::SUBSCRIPTION_CREATE
-        user = object.user
+      when ::NaviGami::Events::SUBSCRIPTION_CREATE, ::NaviGami::Events::PROJECT_PUBLISHED, ::NaviGami::Events::RESERVATION_MACHINE_CREATE
         challenge = ::NaviGami::Challenge.find_by(key: action)
-        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: challenge.medal_id })
-
-        if challenge.active? and challenge.medal_id
-          response = ::NaviGami::API::VisitorMedal.create(request_body)
-        end
-
       when ::NaviGami::Events::USER_TRAINING_CREATE
-        user = object.user
         challenge = object.training.challenge
-        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: challenge.medal_id })
-
-
-      when ::NaviGami::Events::PROJECT_PUBLISHED
-        user = object.author
-        medal_id = ::NaviGami::Challenge.find_by(key: action).medal_id
-        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: medal_id })
-
-      when ::NaviGami::Events::RESERVATION_MACHINE_CREATE
-        user = object.user
-        medal_id = ::NaviGami::Challenge.find_by(key: action).medal_id
-        request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: medal_id })
-
       end
 
-      Logger.info ['Navinum API response', response.try(:code), response.try(:body)]
+      request_body = request_body.merge({ visiteur_id: user.uid, medaille_id: challenge.medal_id })
 
-      notification = Notification.new(meta_data: { event: action })
-      notification.send_notification(type: :navi_gami_challenge_won, attached_object: object).to(user).deliver_later
+      if challenge.active? and challenge.medal_id
+        Logger.info ['Navinum API request body sent', request_body]
+        response_body, raw_response = ::NaviGami::API::VisitorMedal.create(request_body)
+        Logger.info ['Navinum API response', raw_response.code, raw_response.try(:body)]
 
+        if (raw_response.code.to_i >= 200) and (raw_response.code.to_i) < 300
+          notification = Notification.new(meta_data: { event: action })
+          notification.send_notification(type: :navi_gami_challenge_won, attached_object: object).to(user).deliver_later
+        end
+      else
+        Logger.info ['Gamification Navinum', "no request made because challenge isn't active or challenge doesn't have medal_id associated with."]
+      end
     end
   end
 
@@ -344,7 +336,7 @@ after_initialize do
 
     private
       def navi_gami_callback
-        if self.project_caos.any? and self.project_vents and self.name.present? and self.description.present?
+        if self.project_caos.any? and self.machines.any? and self.name.present? and self.description.present?
           NaviGami::APICallbacksJob.perform_later(::NaviGami::Events::PROJECT_PUBLISHED, self)
         end
       end
@@ -356,7 +348,7 @@ after_initialize do
 
     private
       def navi_gami_callback
-        NaviGami::APICallbacksJob.perform_later(::NaviGami::Events::RESERVATION_MACHINE_CREATE, self) if self.reservation_type == "Machine"
+        NaviGami::APICallbacksJob.perform_later(::NaviGami::Events::RESERVATION_MACHINE_CREATE, self) if self.reservable_type == "Machine"
       end
   end
 
