@@ -250,9 +250,16 @@ after_initialize do
     end
 
     module Visitor
-      def self.show(guid:, with_univers = 1)
-        query_params = { guid: guid }.merge({with_univers: with_univers})
+      def self.show(guid:, with_univers: 1)
+        query_params = { guid: guid, with_univers: with_univers}
         full_uri = "#{::NaviGami::API.config.base_uri}/visiteur?#{query_params.to_query}"
+        ::NaviGami::API.get(full_uri)
+      end
+    end
+
+    module CSP
+      def self.index
+        full_uri = "#{::NaviGami::API.config.base_uri}/csp"
         ::NaviGami::API.get(full_uri)
       end
     end
@@ -302,19 +309,6 @@ after_initialize do
       else
         Logger.info ['Gamification Navinum', "no request made because challenge isn't active or challenge doesn't have medal_id associated with."]
       end
-    end
-  end
-
-  # Job to update users' account data with Navinum API
-  class ::NaviGami::UpdateUsersDataJob
-    include Sidekiq::Worker
-    sidekiq_options queue: 'default', retry: true
-
-    Logger = Sidekiq.logger
-
-    def perform
-      Logger.info ['Navinum update users job']
-
     end
   end
 
@@ -400,6 +394,133 @@ after_initialize do
 
       namespace :gamification_data_proxy do
         get :profile_data
+      end
+    end
+  end
+
+  # Job to update users' account data with Navinum API
+  class ::NaviGami::UpdateUsersDataJob
+    include Sidekiq::Worker
+    sidekiq_options queue: 'default', retry: true
+
+    Logger = Sidekiq.logger
+
+    def perform
+      Logger.info ['Navinum UPDATE USERS JOB']
+
+      csps, raw_response = ::NaviGami::API::CSP.index # get categories socioprofessionnelles
+
+      profile_mapping = Hash[OAuth2Mapping.where(local_model: "profile").pluck(:local_field, :api_field)]
+      user_mapping = Hash[OAuth2Mapping.where(local_model: "user").pluck(:local_field, :api_field)]
+
+      User.where.not(uid: nil).find_in_batches(batch_size: 50) do |group|
+        uids = group.map(&:uid).join(',')
+
+        batch_users_response, raw_response = ::NaviGami::API::Visitor.show(guid: uids, with_univers: 0)
+
+        group.each do |user|
+          api_user_response = batch_users_response.find { |user_response| user_response["guid"] == user.uid }
+
+          whitelisted_changes = {}
+
+          if user_mapping.key?("username")
+            unless User.where.not(id: user.id).where(username: api_user_response[user_mapping["username"]]).any?
+              whitelisted_changes["username"] = api_user_response[user_mapping["username"]]
+            end
+          end
+
+          if user_mapping.key?("email")
+            unless User.where.not(id: user.id).where(email: api_user_response[user_mapping["email"]]).any?
+              whitelisted_changes["email"] = api_user_response[user_mapping["email"]]
+            end
+          end
+
+          whitelisted_changes["profile_attributes"] = {}
+
+          if profile_mapping.key?("first_name")
+            if api_user_response[profile_mapping["first_name"]].present? and api_user_response[profile_mapping["first_name"]].length <= 30
+              whitelisted_changes["profile_attributes"]["first_name"] = api_user_response[profile_mapping["first_name"]]
+            end
+
+            if api_user_response[profile_mapping["last_name"]].present? and api_user_response[profile_mapping["last_name"]].length <= 30
+              whitelisted_changes["profile_attributes"]["last_name"] = api_user_response[profile_mapping["last_name"]]
+            end
+          end
+
+          if profile_mapping.key?("gender")
+            if api_user_response[profile_mapping["gender"]].upcase.in? ['H','F']
+              whitelisted_changes["profile_attributes"]["gender"] = (api_user_response[profile_mapping["gender"]].upcase == 'H') ? true : false
+            end
+          end
+
+          if profile_mapping.key?("birthday")
+            begin
+              whitelisted_changes["profile_attributes"]["birthday"] = Date.parse(api_user_response[profile_mapping["birthday"]])
+            rescue ArgumentError
+            end
+          end
+
+          if profile_mapping.key?("phone")
+            if api_user_response[profile_mapping["phone"]].present? and !!(api_user_response[profile_mapping["phone"]] =~ /\A\d+\z/) # test if numeric
+              whitelisted_changes["profile_attributes"]["phone"] = api_user_response[profile_mapping["phone"]]
+            end
+          end
+
+          if profile_mapping.key?("website") and api_user_response[profile_mapping["website"]].present?
+            whitelisted_changes["profile_attributes"]["website"] = api_user_response[profile_mapping["website"]]
+          end
+
+          if profile_mapping.key?("facebook") and api_user_response[profile_mapping["facebook"]].present?
+            whitelisted_changes["profile_attributes"]["facebook"] = api_user_response[profile_mapping["facebook"]]
+          end
+
+          if profile_mapping.key?("twitter") and api_user_response[profile_mapping["twitter"]].present?
+            whitelisted_changes["profile_attributes"]["twitter"] = api_user_response[profile_mapping["twitter"]]
+          end
+
+          if profile_mapping.key?("google_plus") and api_user_response[profile_mapping["google_plus"]].present?
+            whitelisted_changes["profile_attributes"]["google_plus"] = api_user_response[profile_mapping["google_plus"]]
+          end
+
+          if profile_mapping.key?("linkedin") and api_user_response[profile_mapping["linkedin"]].present?
+            whitelisted_changes["profile_attributes"]["linkedin"] = api_user_response[profile_mapping["linkedin"]]
+          end
+
+          if profile_mapping.key?("instagram") and api_user_response[profile_mapping["instagram"]].present?
+            whitelisted_changes["profile_attributes"]["instagram"] = api_user_response[profile_mapping["instagram"]]
+          end
+
+          if profile_mapping.key?("youtube") and api_user_response[profile_mapping["youtube"]].present?
+            whitelisted_changes["profile_attributes"]["youtube"] = api_user_response[profile_mapping["youtube"]]
+          end
+
+          if profile_mapping.key?("dailymotion") and api_user_response[profile_mapping["dailymotion"]].present?
+            whitelisted_changes["profile_attributes"]["dailymotion"] = api_user_response[profile_mapping["dailymotion"]]
+          end
+
+          if profile_mapping.key?("job") and api_user_response[profile_mapping["job"]].present?
+            csp = csps.find { |csp| csp["guid"] == api_user_response[profile_mapping["job"]] }
+            if csp
+              whitelisted_changes["profile_attributes"]["job"] = csp["libelle"]
+            end
+          end
+
+          if user.update(whitelisted_changes)
+            Logger.info ["User with id #{user.id} successfully updated"]
+          else
+            Logger.info ["User with id #{user.id} not updated because of following errors", user.errors]
+          end
+
+          if profile_mapping.key?("avatar")
+            user_avatar = if user.profile.user_avatar
+              user.profile.user_avatar
+            else
+              user.profile.build_user_avatar
+            end
+            user_avatar.remote_attachment_url = api_user_response[profile_mapping["avatar"]]
+            user_avatar.save
+          end
+        end
       end
     end
   end
