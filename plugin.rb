@@ -250,8 +250,8 @@ after_initialize do
     end
 
     module Visitor
-      def self.show(guid:)
-        query_params = { guid: guid }.merge({with_univers: 1})
+      def self.show(guid:, with_univers = 1)
+        query_params = { guid: guid }.merge({with_univers: with_univers})
         full_uri = "#{::NaviGami::API.config.base_uri}/visiteur?#{query_params.to_query}"
         ::NaviGami::API.get(full_uri)
       end
@@ -314,6 +314,7 @@ after_initialize do
 
     def perform
       Logger.info ['Navinum update users job']
+
     end
   end
 
