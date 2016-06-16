@@ -1,7 +1,7 @@
 namespace :navi_gami do
-  task setup: ['challenges:setup', 'config:setup'] # to be executed after db:migrate
+  task setup: ['db:migrate', 'challenges:setup', 'config:setup'] # to be executed after db:migrate
 
-  task undo_setup: ['db:undo']
+  task undo_setup: ['db:rollback']
 
   namespace :challenges do
     task setup: :environment do
@@ -23,7 +23,17 @@ namespace :navi_gami do
   end
 
   namespace :db do
-    task undo: :environment do
+    task migrate: :environment do
+      ENV['VERSION'] = '20160513092838'
+      Rake::Task["db:migrate:up"].invoke
+
+      Rake::Task["db:migrate:up"].reenable
+
+      ENV['VERSION'] = '20160517091119'
+      Rake::Task["db:migrate:up"].invoke
+    end
+
+    task rollback: :environment do
       ENV['VERSION'] = '20160513092838'
       Rake::Task["db:migrate:down"].invoke
 
