@@ -13,8 +13,8 @@
 ### Architecture
 
 This plugin partially reproduces the tree view of a Rails app:
-- `assets` contains the js code, the stylesheets and angular templates
-- `config/locales` contains the locales which permit internationalization
+- `assets` contains js code, stylesheets and angular templates
+- `config/locales` contains locales which permit internationalization
 - `db/migrate` contains the plugin's migrations, those migrations enable creating new tables and/or adding new columns to existing ones
 - `lib/tasks` contains the rake tasks, including tasks to install/init the plugin if necessary
 - `views` contains regular views
