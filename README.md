@@ -19,7 +19,7 @@ This plugin partially reproduces the tree view of a Rails app:
 - `lib/tasks` contains the rake tasks, including tasks to install/init the plugin if necessary
 - `views` contains regular views
 
-All the code of the plugin lives in the **plugin.rb** and does a lot of things:
+All the code of the plugin lives in the **plugin.rb** file and does a lot of things:
 - registering assets
 - registering code insertions (needed if you wants to override already existing views of Fab-manager)
 - defining plugin's ruby classes (models, controllers, jobs, ect)
