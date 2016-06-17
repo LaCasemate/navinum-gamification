@@ -22,11 +22,12 @@ register_code_insertion 'html.user.profile', <<-HTML
   </div>
 HTML
 
-register_code_insertion 'yml.schedule', <<-YAML
-  navi_gami_update_users:
-    cron: "0 3 * * *"
-    class: "::NaviGami::UpdateUsersDataJob"
-    queue: default
+register_code_insertion 'yml.schedule',
+<<-YAML
+navi_gami_update_users:
+  cron: "0 3 * * *"
+  class: "::NaviGami::UpdateUsersDataJob"
+  queue: default
 YAML
 
 
