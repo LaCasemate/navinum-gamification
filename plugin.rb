@@ -257,8 +257,9 @@ after_initialize do
   end
 
   # Job to call callbacks on Navinum API
-  class ::NaviGami::APICallbacksJob < ActiveJob::Base
-    queue_as :default
+  class ::NaviGami::APICallbacksJob
+    include Sidekiq::Worker
+    sidekiq_options queue: 'default', retry: true
 
     Logger = Sidekiq.logger
 
