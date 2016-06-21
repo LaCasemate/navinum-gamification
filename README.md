@@ -5,6 +5,7 @@
   - run the migrations
   - creates challenges (subscription.create, project.published, reservation.machine.create, user_training.create)
   - create a config object which stores configuration of the plugin
+- set `navinum_api_login` and `navinum_api_password` in your `secrets.yml`
 - restart fab-manager app
 - sign in as admin and configure plugin paramaters: `external_space_url, api_url, context_id, universe_id`
 - if you want to retroactively give medals based on user actions history on fab-manager, run the task `rake navi_gami:retroactively_push_medals`. **Be sure to run this task after you configurated correctly the plugin parameters.**
