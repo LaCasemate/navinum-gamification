@@ -513,7 +513,7 @@ after_initialize do
 
             user.profile.assign_attributes(profile_update_params)
 
-            if user.profile.save(false)
+            if user.profile.save(validate: false)
               Logger.info ["Profile with id #{user.profile.id} successfully updated"]
             else
               Logger.info ["Profile with id #{user.profile.id} not updated"]
