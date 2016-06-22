@@ -502,13 +502,21 @@ after_initialize do
 
             Logger.info ['changes:', whitelisted_changes]
 
-            update_params = whitelisted_changes.except("profile_attributes")
-            update_params["profile_attributes"] = user.profile.attributes.except("created_at", "updated_at", "user_id").merge(whitelisted_changes["profile_attributes"])
+            user_update_params = whitelisted_changes.except("profile_attributes")
+            profile_update_params = user.profile.attributes.except("created_at", "updated_at", "user_id").merge(whitelisted_changes["profile_attributes"])
 
-            if user.update(update_params)
+            if user.update(user_update_params)
               Logger.info ["User with id #{user.id} successfully updated"]
             else
               Logger.info ["User with id #{user.id} not updated because of following errors", user.errors]
+            end
+
+            user.profile.assign_attributes(profile_update_params)
+
+            if user.profile.save(false)
+              Logger.info ["Profile with id #{user.profile.id} successfully updated"]
+            else
+              Logger.info ["Profile with id #{user.profile.id} not updated"]
             end
 
             if profile_mapping.key?("avatar")
