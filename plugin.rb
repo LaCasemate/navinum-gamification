@@ -447,7 +447,7 @@ after_initialize do
           if profile_mapping.key?("birthday")
             begin
               whitelisted_changes["profile_attributes"]["birthday"] = Date.parse(api_user_response[profile_mapping["birthday"]])
-            rescue ArgumentError
+            rescue ArgumentError, TypeError
             end
           end
 
