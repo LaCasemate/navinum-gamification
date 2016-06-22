@@ -500,10 +500,8 @@ after_initialize do
               end
             end
 
-            Logger.info ['changes:', whitelisted_changes]
-
-            update_params = whitelisted_changes.except("profile_attributes")
-            update_params["profile_attributes"] = user.profile.attributes.except("created_at", "updated_at", "user_id").merge(whitelisted_changes["profile_attributes"])
+            update_params = whitelisted_changes.except("profile_attributes").delete_if { |k,v| v.blank? }
+            update_params["profile_attributes"] = user.profile.attributes.except("created_at", "updated_at", "user_id").merge(whitelisted_changes["profile_attributes"]).delete_if { |k,v| v.blank? }
 
             Logger.info ['update params', update_params]
 
