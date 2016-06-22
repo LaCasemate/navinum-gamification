@@ -510,15 +510,13 @@ after_initialize do
 
             Logger.info ['profile update params', profile_update_params]
 
-            if User.find(user.id).update(user_update_params)
+            if user.update(user_update_params)
               Logger.info ["User with id #{user.id} successfully updated"]
             else
               Logger.info ["User with id #{user.id} not updated because of following errors", user.errors]
             end
 
-            user.profile.assign_attributes(profile_update_params)
-
-            if user.profile.save(validate: false)
+            if user.profile.update(profile_update_params)
               Logger.info ["Profile with id #{user.profile.id} successfully updated"]
             else
               Logger.info ["Profile with id #{user.profile.id} not updated"]
