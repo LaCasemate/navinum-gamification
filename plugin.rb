@@ -520,6 +520,8 @@ after_initialize do
               user_avatar.remote_attachment_url = api_user_response[profile_mapping["avatar"]]
               user_avatar.save
             end
+          else
+            Logger.info ["NO NAVINUM RESPONSE FOR USER WITH uid=#{user.uid}"]
           end
         end
       end
