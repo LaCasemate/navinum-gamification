@@ -414,108 +414,111 @@ after_initialize do
 
           #Logger.info ['API RESPONSE', api_user_response]
 
-          whitelisted_changes = {}
+          if api_user_response
 
-          if user_mapping.key?("username")
-            unless User.where.not(id: user.id).where(username: api_user_response[user_mapping["username"]]).any?
-              whitelisted_changes["username"] = api_user_response[user_mapping["username"]]
-            end
-          end
+            whitelisted_changes = {}
 
-          if user_mapping.key?("email")
-            unless User.where.not(id: user.id).where(email: api_user_response[user_mapping["email"]]).any?
-              whitelisted_changes["email"] = api_user_response[user_mapping["email"]]
-            end
-          end
-
-          whitelisted_changes["profile_attributes"] = {}
-
-          if profile_mapping.key?("first_name")
-            if api_user_response[profile_mapping["first_name"]].present? and api_user_response[profile_mapping["first_name"]].length <= 30
-              whitelisted_changes["profile_attributes"]["first_name"] = api_user_response[profile_mapping["first_name"]]
+            if user_mapping.key?("username")
+              unless User.where.not(id: user.id).where(username: api_user_response[user_mapping["username"]]).any?
+                whitelisted_changes["username"] = api_user_response[user_mapping["username"]]
+              end
             end
 
-            if api_user_response[profile_mapping["last_name"]].present? and api_user_response[profile_mapping["last_name"]].length <= 30
-              whitelisted_changes["profile_attributes"]["last_name"] = api_user_response[profile_mapping["last_name"]]
+            if user_mapping.key?("email")
+              unless User.where.not(id: user.id).where(email: api_user_response[user_mapping["email"]]).any?
+                whitelisted_changes["email"] = api_user_response[user_mapping["email"]]
+              end
             end
-          end
 
-          if profile_mapping.key?("gender")
-            if api_user_response[profile_mapping["gender"]].upcase.in? ['H','F']
-              whitelisted_changes["profile_attributes"]["gender"] = (api_user_response[profile_mapping["gender"]].upcase == 'H') ? true : false
+            whitelisted_changes["profile_attributes"] = {}
+
+            if profile_mapping.key?("first_name")
+              if api_user_response[profile_mapping["first_name"]].present? and api_user_response[profile_mapping["first_name"]].length <= 30
+                whitelisted_changes["profile_attributes"]["first_name"] = api_user_response[profile_mapping["first_name"]]
+              end
+
+              if api_user_response[profile_mapping["last_name"]].present? and api_user_response[profile_mapping["last_name"]].length <= 30
+                whitelisted_changes["profile_attributes"]["last_name"] = api_user_response[profile_mapping["last_name"]]
+              end
             end
-          end
 
-          if profile_mapping.key?("birthday")
-            begin
-              whitelisted_changes["profile_attributes"]["birthday"] = Date.parse(api_user_response[profile_mapping["birthday"]])
-            rescue ArgumentError, TypeError
+            if profile_mapping.key?("gender")
+              if api_user_response[profile_mapping["gender"]].upcase.in? ['H','F']
+                whitelisted_changes["profile_attributes"]["gender"] = (api_user_response[profile_mapping["gender"]].upcase == 'H') ? true : false
+              end
             end
-          end
 
-          if profile_mapping.key?("phone")
-            if api_user_response[profile_mapping["phone"]].present? and !!(api_user_response[profile_mapping["phone"]] =~ /\A\d+\z/) # test if numeric
-              whitelisted_changes["profile_attributes"]["phone"] = api_user_response[profile_mapping["phone"]]
+            if profile_mapping.key?("birthday")
+              begin
+                whitelisted_changes["profile_attributes"]["birthday"] = Date.parse(api_user_response[profile_mapping["birthday"]])
+              rescue ArgumentError, TypeError
+              end
             end
-          end
 
-          if profile_mapping.key?("website") and api_user_response[profile_mapping["website"]].present?
-            whitelisted_changes["profile_attributes"]["website"] = api_user_response[profile_mapping["website"]]
-          end
-
-          if profile_mapping.key?("facebook") and api_user_response[profile_mapping["facebook"]].present?
-            whitelisted_changes["profile_attributes"]["facebook"] = api_user_response[profile_mapping["facebook"]]
-          end
-
-          if profile_mapping.key?("twitter") and api_user_response[profile_mapping["twitter"]].present?
-            whitelisted_changes["profile_attributes"]["twitter"] = api_user_response[profile_mapping["twitter"]]
-          end
-
-          if profile_mapping.key?("google_plus") and api_user_response[profile_mapping["google_plus"]].present?
-            whitelisted_changes["profile_attributes"]["google_plus"] = api_user_response[profile_mapping["google_plus"]]
-          end
-
-          if profile_mapping.key?("linkedin") and api_user_response[profile_mapping["linkedin"]].present?
-            whitelisted_changes["profile_attributes"]["linkedin"] = api_user_response[profile_mapping["linkedin"]]
-          end
-
-          if profile_mapping.key?("instagram") and api_user_response[profile_mapping["instagram"]].present?
-            whitelisted_changes["profile_attributes"]["instagram"] = api_user_response[profile_mapping["instagram"]]
-          end
-
-          if profile_mapping.key?("youtube") and api_user_response[profile_mapping["youtube"]].present?
-            whitelisted_changes["profile_attributes"]["youtube"] = api_user_response[profile_mapping["youtube"]]
-          end
-
-          if profile_mapping.key?("dailymotion") and api_user_response[profile_mapping["dailymotion"]].present?
-            whitelisted_changes["profile_attributes"]["dailymotion"] = api_user_response[profile_mapping["dailymotion"]]
-          end
-
-          if profile_mapping.key?("job") and api_user_response[profile_mapping["job"]].present?
-            csp = csps.find { |csp| csp["guid"] == api_user_response[profile_mapping["job"]] }
-            if csp
-              whitelisted_changes["profile_attributes"]["job"] = csp["libelle"]
+            if profile_mapping.key?("phone")
+              if api_user_response[profile_mapping["phone"]].present? and !!(api_user_response[profile_mapping["phone"]] =~ /\A\d+\z/) # test if numeric
+                whitelisted_changes["profile_attributes"]["phone"] = api_user_response[profile_mapping["phone"]]
+              end
             end
-          end
 
-          whitelisted_changes["profile_attributes"]["id"] = user.profile.id
+            if profile_mapping.key?("website") and api_user_response[profile_mapping["website"]].present?
+              whitelisted_changes["profile_attributes"]["website"] = api_user_response[profile_mapping["website"]]
+            end
 
-          Logger.info ['changes:', whitelisted_changes]
+            if profile_mapping.key?("facebook") and api_user_response[profile_mapping["facebook"]].present?
+              whitelisted_changes["profile_attributes"]["facebook"] = api_user_response[profile_mapping["facebook"]]
+            end
 
-          if user.update(whitelisted_changes)
-            Logger.info ["User with id #{user.id} successfully updated"]
-          else
-            Logger.info ["User with id #{user.id} not updated because of following errors", user.errors]
-          end
+            if profile_mapping.key?("twitter") and api_user_response[profile_mapping["twitter"]].present?
+              whitelisted_changes["profile_attributes"]["twitter"] = api_user_response[profile_mapping["twitter"]]
+            end
 
-          if profile_mapping.key?("avatar")
-            user_avatar = if user.profile.user_avatar
-              user.profile.user_avatar
+            if profile_mapping.key?("google_plus") and api_user_response[profile_mapping["google_plus"]].present?
+              whitelisted_changes["profile_attributes"]["google_plus"] = api_user_response[profile_mapping["google_plus"]]
+            end
+
+            if profile_mapping.key?("linkedin") and api_user_response[profile_mapping["linkedin"]].present?
+              whitelisted_changes["profile_attributes"]["linkedin"] = api_user_response[profile_mapping["linkedin"]]
+            end
+
+            if profile_mapping.key?("instagram") and api_user_response[profile_mapping["instagram"]].present?
+              whitelisted_changes["profile_attributes"]["instagram"] = api_user_response[profile_mapping["instagram"]]
+            end
+
+            if profile_mapping.key?("youtube") and api_user_response[profile_mapping["youtube"]].present?
+              whitelisted_changes["profile_attributes"]["youtube"] = api_user_response[profile_mapping["youtube"]]
+            end
+
+            if profile_mapping.key?("dailymotion") and api_user_response[profile_mapping["dailymotion"]].present?
+              whitelisted_changes["profile_attributes"]["dailymotion"] = api_user_response[profile_mapping["dailymotion"]]
+            end
+
+            if profile_mapping.key?("job") and api_user_response[profile_mapping["job"]].present?
+              csp = csps.find { |csp| csp["guid"] == api_user_response[profile_mapping["job"]] }
+              if csp
+                whitelisted_changes["profile_attributes"]["job"] = csp["libelle"]
+              end
+            end
+
+            Logger.info ['changes:', whitelisted_changes]
+
+            update_params = user.profile.attributes.except("created_at", "updated_at", "user_id").merge(whitelisted_changes)
+
+            if user.update(update_params)
+              Logger.info ["User with id #{user.id} successfully updated"]
             else
-              user.profile.build_user_avatar
+              Logger.info ["User with id #{user.id} not updated because of following errors", user.errors]
             end
-            user_avatar.remote_attachment_url = api_user_response[profile_mapping["avatar"]]
-            user_avatar.save
+
+            if profile_mapping.key?("avatar")
+              user_avatar = if user.profile.user_avatar
+                user.profile.user_avatar
+              else
+                user.profile.build_user_avatar
+              end
+              user_avatar.remote_attachment_url = api_user_response[profile_mapping["avatar"]]
+              user_avatar.save
+            end
           end
         end
       end
