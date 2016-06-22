@@ -412,6 +412,8 @@ after_initialize do
         group.each do |user|
           api_user_response = batch_users_response.find { |user_response| user_response["guid"] == user.uid }
 
+          #Logger.info ['API RESPONSE', api_user_response]
+
           whitelisted_changes = {}
 
           if user_mapping.key?("username")
@@ -495,6 +497,8 @@ after_initialize do
               whitelisted_changes["profile_attributes"]["job"] = csp["libelle"]
             end
           end
+
+          Logger.info ['changes:', whitelisted_changes]
 
           if user.update(whitelisted_changes)
             Logger.info ["User with id #{user.id} successfully updated"]
