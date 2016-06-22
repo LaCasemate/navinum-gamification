@@ -503,7 +503,12 @@ after_initialize do
             Logger.info ['changes:', whitelisted_changes]
 
             user_update_params = whitelisted_changes.except("profile_attributes")
+
+            Logger.info ['user update params', user_update_params]
+
             profile_update_params = user.profile.attributes.except("created_at", "updated_at", "user_id").merge(whitelisted_changes["profile_attributes"])
+
+            Logger.info ['profile update params', profile_update_params]
 
             if user.update(user_update_params)
               Logger.info ["User with id #{user.id} successfully updated"]
