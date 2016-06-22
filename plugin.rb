@@ -498,6 +498,8 @@ after_initialize do
             end
           end
 
+          whitelisted_changes["profile_attributes"]["id"] = user.profile.id
+
           Logger.info ['changes:', whitelisted_changes]
 
           if user.update(whitelisted_changes)
